@@ -26,6 +26,7 @@ async function run() {
 
     const allFoodCollection = client.db("foodiePal").collection("allFoods");
     const orderFoodCollection = client.db("foodiePal").collection("orderFoods");
+    const userCollection = client.db("foodiePal").collection("users");
 
     //get all foods api
     app.get("/all-foods", async (req, res) => {
@@ -94,7 +95,11 @@ async function run() {
           $set: { ...body },
         };
         const option = { upsert: true };
-        const result = await allFoodCollection.updateOne(query, updatedShow, option);
+        const result = await allFoodCollection.updateOne(
+          query,
+          updatedShow,
+          option
+        );
         res.send(result);
       } catch (error) {
         console.log(error);
@@ -149,6 +154,13 @@ async function run() {
       } catch (error) {
         console.log(error);
       }
+    });
+
+    //store register user information api
+    app.post("/users", async (req, res) => {
+      const newUser = req.body;
+      const result = await userCollection.insertOne(newUser);
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
