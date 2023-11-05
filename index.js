@@ -58,7 +58,7 @@ async function run() {
       }
     });
 
-    //add new food item 
+    //add new food item
     app.post("/add-food", async (req, res) => {
       try {
         const newFood = req.body;
@@ -70,13 +70,31 @@ async function run() {
     });
 
     //get added food item
-    app.get("/add-food", async (req, res) => {
+    app.get("/added-food", async (req, res) => {
       try {
         let query = {};
         if (req.query?.email) {
           query = { email: req.query.email };
         }
         const result = await allFoodCollection.find(query).toArray();
+        // console.log(result)
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+    //update added food item
+    app.put("/update-food/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const body = req.body;
+        const updatedShow = {
+          $set: { ...body },
+        };
+        const option = { upsert: true };
+        const result = await allFoodCollection.updateOne(query, updatedShow, option);
         res.send(result);
       } catch (error) {
         console.log(error);
