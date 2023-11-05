@@ -25,11 +25,21 @@ async function run() {
     await client.connect();
 
     const allFoodCollection = client.db("foodiePal").collection("allFoods");
+    const orderFoodCollection = client.db("foodiePal").collection("orderFoods");
 
     //get all foods api
     app.get("/all-foods", async (req, res) => {
       try {
-        const result = await allFoodCollection.find().toArray();
+        const options = {
+          projection: {
+            foodName: 1,
+            foodImage: 1,
+            foodCategory: 1,
+            price: 1,
+            quantity: 1,
+          },
+        };
+        const result = await allFoodCollection.find({}, options).toArray();
         res.send(result);
       } catch (error) {
         console.log(error);
@@ -40,8 +50,71 @@ async function run() {
     app.get("/all-foods/:id", async (req, res) => {
       try {
         const id = req.params.id;
-        const query = {_id: new ObjectId(id)};
+        const query = { _id: new ObjectId(id) };
         const result = await allFoodCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+    //add new food item by user
+    app.post("/add-food", async (req, res) => {
+      try {
+        const newFood = req.body;
+        const result = await allFoodCollection.insertOne(newFood);
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+    //get added food item
+    app.get("/add-food", async (req, res) => {
+      try {
+        let query = {};
+        if (req.query?.email) {
+          query = { email: req.query.email };
+        }
+        const result = await allFoodCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+    //order food item
+    app.post("/order-foods", async (req, res) => {
+      try {
+        const newFood = req.body;
+        console.log(newFood);
+        const result = await orderFoodCollection.insertOne(newFood);
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+    //get order food item
+    app.get("/order-foods", async (req, res) => {
+      try {
+        let query = {};
+        if (req.query?.email) {
+          query = { email: req.query.email };
+        }
+        const result = await orderFoodCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+    //delete a order food item
+    app.delete("/order-foods/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await orderFoodCollection.deleteOne(query);
         res.send(result);
       } catch (error) {
         console.log(error);
