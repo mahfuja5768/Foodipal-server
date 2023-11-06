@@ -25,12 +25,14 @@ async function run() {
     await client.connect();
 
     const allFoodCollection = client.db("foodiePal").collection("allFoods");
+    // const allFoodItemsCollection = client.db("foodiePal").collection("allFood ");
     const orderFoodCollection = client.db("foodiePal").collection("orderFoods");
     const userCollection = client.db("foodiePal").collection("users");
 
-    //get all foods api
-    app.get("/all-foods", async (req, res) => {
+    //get top ordered foods api
+    app.get("/top-foods", async (req, res) => {
       try {
+        let query = {};
         const options = {
           projection: {
             foodName: 1,
@@ -38,9 +40,51 @@ async function run() {
             foodCategory: 1,
             price: 1,
             quantity: 1,
+            count: 1,
           },
         };
-        const result = await allFoodCollection.find({}, options).toArray();
+        // console.log(foodCategory);
+        const result = await allFoodCollection
+          .find(query, options)
+          .sort({ count: -1 })
+          .limit(6)
+          .toArray();
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+    //get all foods api
+    app.get("/all-foods", async (req, res) => {
+      try {
+        let query = {};
+        let sortObj = {};
+        const foodCategory = req.query.foodCategory;
+        const sortField = req.query.sortField;
+        const sortOrder = req.query.sortOrder;
+        console.log(sortField, sortOrder);
+        if (foodCategory) {
+          query.foodCategory = foodCategory;
+        }
+        if (sortField && sortOrder) {
+          sortObj[sortField] = sortOrder;
+        }
+        console.log(sortObj);
+        const options = {
+          projection: {
+            foodName: 1,
+            foodImage: 1,
+            foodCategory: 1,
+            price: 1,
+            quantity: 1,
+            count: 1,
+          },
+        };
+        // console.log(foodCategory);
+        const result = await allFoodCollection
+          .find(query, options)
+          .sort(sortObj)
+          .toArray();
         res.send(result);
       } catch (error) {
         console.log(error);
@@ -91,15 +135,41 @@ async function run() {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
         const body = req.body;
-        const updatedShow = {
+        const updatedFood = {
           $set: { ...body },
         };
         const option = { upsert: true };
         const result = await allFoodCollection.updateOne(
           query,
-          updatedShow,
+          updatedFood,
           option
         );
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+    /* CHECK */
+    //update count of added food item
+    app.put("/update-count/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        // console.log(query.body)
+        // const update = { $inc: { count: 1 } };
+        const body = req.body;
+        const updatedFood = {
+          $set: { ...body },
+        };
+        console.log(updatedFood);
+        const option = { upsert: true };
+        const result = await allFoodCollection.updateOne(
+          query,
+          updatedFood,
+          option
+        );
+        console.log(result);
         res.send(result);
       } catch (error) {
         console.log(error);
@@ -118,11 +188,10 @@ async function run() {
       }
     });
 
-    //order food item
+    //order food item  /* 654906e8d47282af1069777c */
     app.post("/order-foods", async (req, res) => {
       try {
         const newFood = req.body;
-        console.log(newFood);
         const result = await orderFoodCollection.insertOne(newFood);
         res.send(result);
       } catch (error) {
