@@ -2,11 +2,19 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:5174"],
+    credentials: true,
+  })
+);
 app.use(express.json());
+app.use(cookieParser());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.mz3fw7v.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -19,15 +27,57 @@ const client = new MongoClient(uri, {
   },
 });
 
+const verifyToken = async (req, res, next) => {
+  const token = req.cookies?.token;
+  // console.log("value of token in middleware", token);
+  if (!token) {
+    return res.status(401).send({ status: "unAuthorized Access" });
+  }
+  jwt.verify(token, process.env.ACCESS_TOKEN_PASS, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ status: "unAuthorized" });
+    }
+    // console.log("value in verify token", decoded);
+    req.user = decoded;
+    next();
+  });
+};
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
     const allFoodCollection = client.db("foodiePal").collection("allFoods");
-    // const allFoodItemsCollection = client.db("foodiePal").collection("allFood ");
     const orderFoodCollection = client.db("foodiePal").collection("orderFoods");
     const userCollection = client.db("foodiePal").collection("users");
+
+    // jwt api
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      console.log("email:", user);
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "5h",
+      });
+      // console.log(token);
+      const expireDate = new Date();
+      expireDate.setDate(expireDate.getDate() + 7);
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: false,
+          expires: expireDate,
+          // sameSite: "none",
+        })
+        .send({ success: true });
+    });
+
+    //logout api
+    app.post("/logout", async (req, res) => {
+      const user = req.body;
+      console.log("logging out", user);
+      res.clearCookie("token", { maxAge: 0 }).send({ success: true });
+    });
 
     //get top ordered foods api
     app.get("/top-foods", async (req, res) => {
@@ -39,7 +89,6 @@ async function run() {
             foodImage: 1,
             foodCategory: 1,
             price: 1,
-            quantity: 1,
             count: 1,
           },
         };
@@ -59,13 +108,14 @@ async function run() {
       try {
         let query = {};
         let sortObj = {};
-        const foodCategory = req.query.foodCategory;
+        const foodName = req.query?.foodName;
         const sortField = req.query.sortField;
         const sortOrder = req.query.sortOrder;
-        console.log(sortField, sortOrder);
-        if (foodCategory) {
-          query.foodCategory = foodCategory;
-        }
+        const page = parseInt(req.query.page);
+        const size = parseInt(req.query.size);
+        // console.log(page, size);
+        console.log(sortField);
+
         if (sortField && sortOrder) {
           sortObj[sortField] = sortOrder;
         }
@@ -76,19 +126,35 @@ async function run() {
             foodImage: 1,
             foodCategory: 1,
             price: 1,
-            quantity: 1,
-            count: 1,
           },
         };
-        // console.log(foodCategory);
-        const result = await allFoodCollection
-          .find(query, options)
-          .sort(sortObj)
-          .toArray();
-        res.send(result);
+        if (foodName) {
+          query.foodName = foodName;
+          const result = await allFoodCollection
+            .find(query, options)
+            .skip(page * size)
+            .limit(size)
+            .sort(sortObj)
+            .toArray();
+          res.send(result);
+        } else {
+          const result = await allFoodCollection
+            .find({})
+            .skip(page * size)
+            .limit(size)
+            .toArray();
+          res.send(result);
+        }
       } catch (error) {
         console.log(error);
       }
+    });
+
+    //foods limit count
+    app.get("/foodsCount", async (req, res) => {
+      const count = await allFoodCollection.estimatedDocumentCount();
+      // console.log(count);
+      res.send({ count });
     });
 
     //get a food item by id api
@@ -104,7 +170,7 @@ async function run() {
     });
 
     //add new food item
-    app.post("/add-food", async (req, res) => {
+    app.post("/add-food", verifyToken, async (req, res) => {
       try {
         const newFood = req.body;
         const result = await allFoodCollection.insertOne(newFood);
@@ -115,7 +181,7 @@ async function run() {
     });
 
     //get added food item
-    app.get("/added-food", async (req, res) => {
+    app.get("/added-food", verifyToken, async (req, res) => {
       try {
         let query = {};
         if (req.query?.email) {
@@ -130,7 +196,7 @@ async function run() {
     });
 
     //update added food item
-    app.put("/update-food/:id", async (req, res) => {
+    app.put("/update-food/:id", verifyToken, async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
@@ -151,16 +217,14 @@ async function run() {
     });
 
     /* CHECK */
-    //update count of added food item
-    app.put("/update-count/:id", async (req, res) => {
+    //update quantity of added food item
+    app.put("/update-quantity/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
-        // console.log(query.body)
-        // const update = { $inc: { count: 1 } };
-        const body = req.body;
+        // console.log(query);
         const updatedFood = {
-          $set: { ...body },
+          $inc: { quantity: -1, count: +1 },
         };
         console.log(updatedFood);
         const option = { upsert: true };
@@ -169,7 +233,6 @@ async function run() {
           updatedFood,
           option
         );
-        console.log(result);
         res.send(result);
       } catch (error) {
         console.log(error);
@@ -188,7 +251,7 @@ async function run() {
       }
     });
 
-    //order food item  /* 654906e8d47282af1069777c */
+    //order food item
     app.post("/order-foods", async (req, res) => {
       try {
         const newFood = req.body;
