@@ -158,7 +158,7 @@ async function run() {
     });
 
     //get a food item by id api
-    app.get("/all-foods/:id", verifyToken, async (req, res) => {
+    app.get("/all-foods/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
@@ -170,7 +170,7 @@ async function run() {
     });
 
     //add new food item
-    app.post("/add-food", verifyToken, async (req, res) => {
+    app.post("/add-food", async (req, res) => {
       try {
         const newFood = req.body;
         const result = await allFoodCollection.insertOne(newFood);
@@ -181,7 +181,7 @@ async function run() {
     });
 
     //get added food item
-    app.get("/added-food", verifyToken, async (req, res) => {
+    app.get("/added-food", async (req, res) => {
       try {
         let query = {};
         if (req.query?.email) {
@@ -196,7 +196,7 @@ async function run() {
     });
 
     //update added food item
-    app.put("/update-food/:id", verifyToken, async (req, res) => {
+    app.put("/update-food/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
@@ -217,7 +217,7 @@ async function run() {
     });
 
     //update quantity of added food item
-    app.put("/update-quantity/:id", verifyToken, async (req, res) => {
+    app.put("/update-quantity/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
@@ -239,7 +239,7 @@ async function run() {
     });
 
     //delete added food item
-    app.delete("/delete-food/:id", verifyToken, async (req, res) => {
+    app.delete("/delete-food/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
@@ -251,7 +251,7 @@ async function run() {
     });
 
     //order food item
-    app.post("/order-foods", verifyToken, async (req, res) => {
+    app.post("/order-foods", async (req, res) => {
       try {
         const newFood = req.body;
         const result = await orderFoodCollection.insertOne(newFood);
@@ -262,7 +262,7 @@ async function run() {
     });
 
     //get order food item
-    app.get("/order-foods", verifyToken, async (req, res) => {
+    app.get("/order-foods", async (req, res) => {
       try {
         let query = {};
         if (req.query?.email) {
@@ -276,7 +276,7 @@ async function run() {
     });
 
     //delete a order food item
-    app.delete("/order-foods/:id", verifyToken, async (req, res) => {
+    app.delete("/order-foods/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
