@@ -216,7 +216,6 @@ async function run() {
       }
     });
 
-    /* CHECK */
     //update quantity of added food item
     app.put("/update-quantity/:id", async (req, res) => {
       try {
