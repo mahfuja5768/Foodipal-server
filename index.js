@@ -1,6 +1,3 @@
-
-
-
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -199,12 +196,26 @@ async function run() {
       }
     });
 
+    //get added food item by id
+    app.get("/added-food/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await allFoodCollection.find(query).toArray();
+        console.log('hi', result)
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
     //update added food item
     app.put("/update-food/:id", async (req, res) => {
       try {
         const id = req.params.id;
+        console.log(id)
         const query = { _id: new ObjectId(id) };
         const body = req.body;
+        console.log(body)
         const updatedFood = {
           $set: { ...body },
         };
@@ -214,6 +225,7 @@ async function run() {
           updatedFood,
           option
         );
+        console.log(result)
         res.send(result);
       } catch (error) {
         console.log(error);
