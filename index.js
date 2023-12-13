@@ -52,6 +52,7 @@ async function run() {
     const allFoodCollection = client.db("foodiePal").collection("allFoods");
     const orderFoodCollection = client.db("foodiePal").collection("orderFoods");
     const userCollection = client.db("foodiePal").collection("users");
+    const bookingCollection = client.db("foodiePal").collection("bookings");
 
     // jwt api
     app.post("/jwt", async (req, res) => {
@@ -151,6 +152,41 @@ async function run() {
       }
     });
 
+    //get foods by name
+    app.get("/search-foods/:foodName", async (req, res) => {
+      try {
+        const foodName = req.params.foodName;
+        let query = { foodName: foodName };
+        console.log(foodName);
+        const result = await allFoodCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+     //post bookings
+     app.post("/bookings", async (req, res) => {
+      try {
+        const newBooking= req.body;
+        const result = await bookingCollection.insertOne(newBooking);
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+    app.get("/bookings/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+        const query = { email: email };
+        const result = await bookingCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
     //foods limit count
     app.get("/foodsCount", async (req, res) => {
       const count = await allFoodCollection.estimatedDocumentCount();
@@ -202,7 +238,7 @@ async function run() {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
         const result = await allFoodCollection.find(query).toArray();
-        console.log('hi', result)
+        // console.log('hi', result)
         res.send(result);
       } catch (error) {
         console.log(error);
@@ -212,10 +248,10 @@ async function run() {
     app.put("/update-food/:id", async (req, res) => {
       try {
         const id = req.params.id;
-        console.log(id)
+        console.log(id);
         const query = { _id: new ObjectId(id) };
         const body = req.body;
-        console.log(body)
+        console.log(body);
         const updatedFood = {
           $set: { ...body },
         };
@@ -225,7 +261,7 @@ async function run() {
           updatedFood,
           option
         );
-        console.log(result)
+        console.log(result);
         res.send(result);
       } catch (error) {
         console.log(error);
