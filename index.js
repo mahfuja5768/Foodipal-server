@@ -53,6 +53,7 @@ async function run() {
     const orderFoodCollection = client.db("foodiePal").collection("orderFoods");
     const userCollection = client.db("foodiePal").collection("users");
     const bookingCollection = client.db("foodiePal").collection("bookings");
+    const reviewCollection = client.db("foodiePal").collection("reviews");
 
     // jwt api
     app.post("/jwt", async (req, res) => {
@@ -175,6 +176,28 @@ async function run() {
         console.log(error);
       }
     });
+
+     //post review
+     app.post("/add-review", async (req, res) => {
+      try {
+        const review= req.body;
+        const result = await reviewCollection.insertOne(review);
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+    app.get("/add-review", async (req, res) => {
+      try {
+        const result = await reviewCollection.find().toArray();
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+    
 
     app.get("/bookings/:email", async (req, res) => {
       try {
